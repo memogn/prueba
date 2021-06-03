@@ -38,9 +38,9 @@ def ArrayForceCoefficients(alpha):
 
 
 # Derivation for calculating the induced angle
-def depsiloni(Cbb,rR,CL,k,betaTip,epsiloni,epsiloninf):
+def depsiloni(Cbprime,rR,CL,k,betaTip,epsiloni,epsiloninf):
 
-	Term1 = Cbb/(8*rR)*CL
+	Term1 = Cbprime/(8*rR)*CL
 
 	Term2 = -np.arccos(np.exp(-k*(1-rR)/(2*np.sin(betaTip))))
 
@@ -55,19 +55,18 @@ def depsiloni(Cbb,rR,CL,k,betaTip,epsiloni,epsiloninf):
 	return fx, dfx
 
 
-zeroliftangle=-2.1
-zeroliftangle=zeroliftangle*np.pi/180
+zeroliftangle = -2.1
+zeroliftangle = zeroliftangle*np.pi/180
 
 # Radius
-Nn = 30
+Nn = 100
 rR = np.linspace(0.1,0.99,Nn)
-print(rR)
 
 cbdp = 0.075*np.sqrt(1-rR**2)
 
-
 # Aerodynamic pitch-to-diameter ratio
 Kc = 0.5
+
 # Local pitch-to-diameter ratio
 K = pi*rR* ( Kc - pi*rR*np.tan(zeroliftangle) ) / ( pi*rR + Kc*np.tan(zeroliftangle) )
 
@@ -79,54 +78,50 @@ betaTip = beta[-1] #Last element of the arrow
 # print(beta*180/pi)
 
 # Advance angle 
-J = 0.25
+J = 0.0
 epsiloninf = np.arctan(J/(pi*rR) )
-
-epsiloni = np.linspace(1,1,30)
-# CLL = np.linspace(0,0,30)
 
 # Number of blades
 k = 2
+
 # Chord length ratio
-Cbb = k * 0.075*np.sqrt(1-rR**2)
+Cbprime = k*0.075*np.sqrt(1-rR**2)
 
-# lamb = 2*np.pi*r * (lambc - 2*np.pi*r*tan(zeroliftangle)) / (2*np.pi*r + lambc*tan(zeroliftangle))
-
+# Induced angle
+epsiloni = np.linspace(0.1,0.1,Nn)
 
 alphab = beta - epsiloninf - epsiloni
 
 CL, CD = ArrayForceCoefficients(alphab)
 
+# plt.plot(rR,epsiloninf*180/pi)
+# plt.show()
 
-print('++++++++++++++++++')
-
-epsiloni0 = CL*0.01
+epsiloni0 = epsiloni
 
 for i in  range(50):
 
-	fx, dfx = depsiloni(Cbb,rR,CL,k,betaTip,epsiloni0,epsiloninf)
+	fx, dfx = depsiloni(Cbprime,rR,CL,k,betaTip,epsiloni0,epsiloninf)
 	epsiloni1 = epsiloni0 - fx/dfx
-	print(i)
 
 	alphab = beta - epsiloninf - epsiloni1
+
+	CT = pi**2/4 * rR**2 *Cbprime * np.cos(epsiloni1)**2/np.cos(epsiloninf)**2 \
+			*( CL*np.cos(epsiloni1+epsiloninf) - CD*np.cos(epsiloni1+epsiloninf) )
+
 
 	# Calculate new force coefficients
 	CL, CD = ArrayForceCoefficients(alphab)
 
 	Error = abs(sum(epsiloni1-epsiloni0))
-	print(Error)
+	print(i+1, "{:.2e}".format(Error))
+
 	epsiloni0 = epsiloni1
 
 	if Error < 10e-6: break
 
 
-print(epsiloni1*180/pi)
 
-
-# print(1/np.cos(epsiloni))
-
-# sec^2(x) sin(x + y) + cos(x + y) tan(x)
-
-# plt.plot(rR, cbdp, 'bo')
-plt.plot(rR, epsiloni1*180/pi, 'ro')
+plt.plot(rR, epsiloni1*180/pi, 'r', rR, alphab*180/pi, 'b')
+# plt.plot(rR, CT)
 plt.show()

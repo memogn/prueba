@@ -1,2 +1,0 @@
-print('otros')
-print('Hola')
